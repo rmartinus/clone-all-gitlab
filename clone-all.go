@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+const perPage = 20
+
 // Project represents gitlab response
 type Project struct {
 	RepoURL string `json:"http_url_to_repo"`
@@ -15,7 +17,7 @@ type Project struct {
 
 func main() {
 	token := os.Getenv("GITLAB_TOKEN")
-	url := fmt.Sprintf("%s%s", os.Getenv("GITLAB_URL"), "?include_subgroups=true&per_page=20&page=1")
+	url := os.Getenv("GITLAB_URL")
 
 	if len(token) < 1 {
 		fmt.Print("Please set GITLAB_TOKEN")
@@ -25,25 +27,36 @@ func main() {
 		fmt.Print("Please set GITLAB_URL")
 	}
 
-	body, err := getProjects(token, url)
-	if err != nil {
-		fmt.Printf("Error retrieving projects %s\n", err)
-	}
+	page := 1
 
-	var ps []Project
-	err = json.Unmarshal(body, &ps)
-	if err != nil {
-		fmt.Printf("Error unmarshalling body: %s", err)
-	}
+	for {
+		body, err := getProjects(token, url, perPage, page)
+		if err != nil {
+			fmt.Printf("Error retrieving projects %s\n", err)
+		}
 
-	fmt.Printf("Project size: %d\n", len(ps))
+		var ps []Project
+		err = json.Unmarshal(body, &ps)
+		if err != nil {
+			fmt.Printf("Error unmarshalling body: %s", err)
+		}
 
-	for _, p := range ps {
-		fmt.Println(p.RepoURL)
+		if len(ps) == 0 {
+			break
+		}
+
+		fmt.Printf("Page %d, project size: %d\n", page, len(ps))
+
+		for _, p := range ps {
+			fmt.Println(p.RepoURL)
+		}
+		page++
 	}
 }
 
-func getProjects(token string, url string) ([]byte, error) {
+func getProjects(token string, url string, perPage int, page int) ([]byte, error) {
+	url = fmt.Sprintf("%s?include_subgroups=true&per_page=%d&page=%d", url, perPage, page)
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
