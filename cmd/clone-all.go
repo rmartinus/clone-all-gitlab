@@ -12,6 +12,7 @@ const perPage = 20
 
 // Project represents gitlab response
 type Project struct {
+	Name    string `json:"name"`
 	RepoURL string `json:"http_url_to_repo"`
 }
 
@@ -20,11 +21,11 @@ func main() {
 	url := os.Getenv("GITLAB_URL")
 
 	if len(token) < 1 {
-		fmt.Print("Please set GITLAB_TOKEN")
+		fmt.Print("GITLAB_TOKEN is not set")
 	}
 
 	if len(url) < 1 {
-		fmt.Print("Please set GITLAB_URL")
+		fmt.Print("GITLAB_URL is not set")
 	}
 
 	page := 1
@@ -48,7 +49,10 @@ func main() {
 		fmt.Printf("Page %d, project size: %d\n", page, len(ps))
 
 		for _, p := range ps {
-			fmt.Println(p.RepoURL)
+			err = gitlab.Clone(p.Name, p.RepoURL, token)
+			if err != nil {
+				fmt.Printf("Error cloning %s - error: %v\n", url, err)
+			}
 		}
 		page++
 	}
