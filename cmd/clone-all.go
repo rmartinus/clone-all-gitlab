@@ -10,7 +10,7 @@ import (
 
 const (
 	perPage    = 20
-	workerPool = 3
+	workerPool = 5
 )
 
 func main() {
@@ -36,33 +36,34 @@ func main() {
 		go gitlab.Clone(w, token, jobs, results)
 	}
 
-	// for {
-	body, err := gitlab.GetProjects(token, url, perPage, page)
-	if err != nil {
-		fmt.Printf("Error retrieving projects %s\n", err)
-	}
+	for {
+		body, err := gitlab.GetProjects(token, url, perPage, page)
+		if err != nil {
+			fmt.Printf("Error retrieving projects %s\n", err)
+			return
+		}
 
-	var ps []gitlab.Project
-	err = json.Unmarshal(body, &ps)
-	if err != nil {
-		fmt.Printf("Error unmarshalling body: %s", err)
-	}
+		var ps []gitlab.Project
+		err = json.Unmarshal(body, &ps)
+		if err != nil {
+			fmt.Printf("Error unmarshalling body: %s", err)
+		}
 
-	// if len(ps) == 0 {
-	// 	break
-	// }
+		if len(ps) == 0 {
+			break
+		}
 
-	fmt.Printf("Page %d, project size: %d\n", page, len(ps))
+		fmt.Printf("Page %d, project size: %d\n", page, len(ps))
 
-	for _, p := range ps {
-		jobs <- p
+		for _, p := range ps {
+			jobs <- p
+		}
+
+		for i := 0; i < len(ps); i++ {
+			<-results
+		}
+
+		page++
 	}
 	close(jobs)
-
-	for i := 0; i < len(ps); i++ {
-		<-results
-	}
-
-	// page++
-	// }
 }
