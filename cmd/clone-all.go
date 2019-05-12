@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -28,6 +27,7 @@ func main() {
 	}
 
 	page := 1
+	totalProject := 0
 
 	jobs := make(chan gitlab.Project, 100)
 	results := make(chan error, 100)
@@ -38,16 +38,9 @@ func main() {
 
 	var errs []error
 	for {
-		body, err := gitlab.GetProjects(token, url, perPage, page)
+		ps, err := gitlab.GetProjects(token, url, perPage, page)
 		if err != nil {
 			fmt.Printf("Error retrieving projects %s\n", err)
-			return
-		}
-
-		var ps []gitlab.Project
-		err = json.Unmarshal(body, &ps)
-		if err != nil {
-			fmt.Printf("Error unmarshalling body: %s", err)
 			return
 		}
 
@@ -56,6 +49,7 @@ func main() {
 		}
 
 		fmt.Printf("Page %d, project size: %d\n", page, len(ps))
+		totalProject += len(ps)
 
 		for _, p := range ps {
 			jobs <- p
@@ -67,14 +61,15 @@ func main() {
 				errs = append(errs, err)
 			}
 		}
-
 		page++
 	}
 
+	fmt.Println("Summary:")
+	fmt.Println("Total number of project:", totalProject)
 	if len(errs) > 0 {
-		fmt.Println("Errors:")
+		fmt.Println("Total number of errors:", len(errs))
 		for _, err := range errs {
-			fmt.Println("- ", err)
+			fmt.Println("-", err)
 		}
 	}
 	close(jobs)
