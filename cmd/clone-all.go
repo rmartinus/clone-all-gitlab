@@ -65,7 +65,7 @@ func main() {
 	}
 
 	fmt.Println("Summary:")
-	fmt.Println("Total number of project:", totalProject)
+	fmt.Println("Total number of projects:", totalProject)
 	if len(errs) > 0 {
 		fmt.Println("Total number of errors:", len(errs))
 		for _, err := range errs {
