@@ -9,15 +9,23 @@ import (
 )
 
 // Clone clones the given url to the current directory
-func Clone(name string, url string, token string) error {
-	fmt.Printf("Cloning %s to %s\n", url, name)
-	_, err := git.PlainClone("/tmp/clone-all/"+name, false, &git.CloneOptions{
-		URL: url,
-		Auth: &http.BasicAuth{
-			Password: token,
-		},
-		Progress: os.Stdout,
-	})
+func Clone(id int, token string, jobs <-chan Project, results chan<- bool) {
+	for j := range jobs {
+		fmt.Printf("**** Worker %d - cloning %s to %s\n", id, j.RepoURL, j.Path)
+		_, err := git.PlainClone("/tmp/clone-all/"+j.Path, false, &git.CloneOptions{
+			URL: j.RepoURL,
+			Auth: &http.BasicAuth{
+				Password: token,
+			},
+			Progress: os.Stdout,
+		})
 
-	return err
+		if err != nil {
+			fmt.Printf("**** Worker %d - error cloning %s - error: %v\n", id, j.RepoURL, err)
+			results <- false
+		} else {
+			fmt.Printf("**** Worker %d - successfully cloned %s\n", id, j.RepoURL)
+			results <- true
+		}
+	}
 }

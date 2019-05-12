@@ -6,6 +6,12 @@ import (
 	"net/http"
 )
 
+// Project represents gitlab response
+type Project struct {
+	Path    string `json:"path"`
+	RepoURL string `json:"http_url_to_repo"`
+}
+
 // GetProjects gets a list of projects
 func GetProjects(token string, url string, perPage int, page int) ([]byte, error) {
 	url = fmt.Sprintf("%s?include_subgroups=true&per_page=%d&page=%d", url, perPage, page)
