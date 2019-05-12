@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/rmartinus/clone-all-gitlab/pkg/gitlab"
@@ -15,6 +16,7 @@ const (
 func main() {
 	token := os.Getenv("GITLAB_TOKEN")
 	url := os.Getenv("GITLAB_URL")
+	data, err := ioutil.ReadFile("banner.txt")
 
 	if len(token) < 1 {
 		fmt.Println("GITLAB_TOKEN is not set")
@@ -25,6 +27,12 @@ func main() {
 		fmt.Println("GITLAB_URL is not set")
 		return
 	}
+
+	if err != nil {
+		fmt.Println("Error opening file")
+		return
+	}
+	fmt.Println(string(data))
 
 	page := 1
 	totalProject := 0
