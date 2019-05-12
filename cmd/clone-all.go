@@ -30,12 +30,13 @@ func main() {
 	page := 1
 
 	jobs := make(chan gitlab.Project, 100)
-	results := make(chan bool, 100)
+	results := make(chan error, 100)
 
 	for w := 1; w <= workerPool; w++ {
 		go gitlab.Clone(w, token, jobs, results)
 	}
 
+	var errs []error
 	for {
 		body, err := gitlab.GetProjects(token, url, perPage, page)
 		if err != nil {
@@ -47,6 +48,7 @@ func main() {
 		err = json.Unmarshal(body, &ps)
 		if err != nil {
 			fmt.Printf("Error unmarshalling body: %s", err)
+			return
 		}
 
 		if len(ps) == 0 {
@@ -60,10 +62,20 @@ func main() {
 		}
 
 		for i := 0; i < len(ps); i++ {
-			<-results
+			err := <-results
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		page++
+	}
+
+	if len(errs) > 0 {
+		fmt.Println("Errors:")
+		for _, err := range errs {
+			fmt.Println("- ", err)
+		}
 	}
 	close(jobs)
 }
