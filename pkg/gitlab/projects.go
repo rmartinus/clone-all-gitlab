@@ -8,7 +8,7 @@ import (
 
 // Project represents gitlab response
 type Project struct {
-	Path    string `json:"path"`
+	Path    string `json:"path_with_namespace"`
 	RepoURL string `json:"http_url_to_repo"`
 }
 

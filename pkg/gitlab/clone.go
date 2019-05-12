@@ -1,12 +1,15 @@
 package gitlab
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
+
+var errRepositoryExists = errors.New("repository already exists")
 
 // Clone clones the given url to the current directory
 func Clone(id int, token string, jobs <-chan Project, results chan<- bool) {

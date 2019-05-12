@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	perPage    = 20
+	perPage    = 50
 	workerPool = 5
 )
 
