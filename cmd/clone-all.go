@@ -11,7 +11,7 @@ import (
 const (
 	perPage          = 50
 	workerPool       = 5
-	gitlabURL        = "https://gitlab.com/api/v4/groups/mnf-group/projects/"
+	gitlabURL        = "https://gitlab.com/api/v4/groups/your-org/projects/"
 	defaultClonePath = "/tmp/clone-all/"
 )
 
