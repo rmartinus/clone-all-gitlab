@@ -1,52 +1,77 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/rmartinus/clone-all-gitlab/pkg/gitlab"
 )
 
 const (
-	perPage    = 50
-	workerPool = 5
+	perPage          = 50
+	workerPool       = 5
+	gitlabURL        = "https://gitlab.com/api/v4/groups/mnf-group/projects/"
+	defaultClonePath = "/tmp/clone-all/"
 )
 
 func main() {
+	fmt.Println(gitlab.Banner)
+
 	token := os.Getenv("GITLAB_TOKEN")
-	url := os.Getenv("GITLAB_URL")
-	data, err := ioutil.ReadFile("banner.txt")
+	clonePath := os.Getenv("DEV_HOME")
+	namespace := os.Getenv("GITLAB_NAMESPACE")
 
 	if len(token) < 1 {
 		fmt.Println("GITLAB_TOKEN is not set")
 		return
 	}
 
-	if len(url) < 1 {
-		fmt.Println("GITLAB_URL is not set")
-		return
+	scanner := bufio.NewScanner(os.Stdin)
+	if len(clonePath) == 0 {
+		text := readLine("Clone path (defaults to /tmp/clone-all/): ", scanner)
+
+		if len(text) > 0 {
+			clonePath = text
+		} else {
+			clonePath = defaultClonePath
+		}
 	}
 
-	if err != nil {
-		fmt.Println("Error opening file")
-		return
+	if clonePath[len(clonePath)-1:] != "/" {
+		clonePath += "/"
 	}
-	fmt.Println(string(data))
 
+	if len(namespace) == 0 {
+		text := readLine("Namespace (eg. <your-org-name>/<repository>): ", scanner)
+		if len(text) > 0 {
+			namespace = text
+		}
+	}
+	cloneProjects(token, clonePath, namespace)
+}
+
+func readLine(s string, scanner *bufio.Scanner) string {
+	fmt.Print(s)
+	scanner.Scan()
+	input := scanner.Text()
+	return input
+}
+
+func cloneProjects(token string, clonePath string, namespace string) {
 	page := 1
 	totalProject := 0
 
 	jobs := make(chan gitlab.Project, 100)
-	results := make(chan error, 100)
+	errors := make(chan error, 100)
 
 	for w := 1; w <= workerPool; w++ {
-		go gitlab.Clone(w, token, jobs, results)
+		go gitlab.Clone(w, token, clonePath, jobs, errors)
 	}
 
 	var errs []error
 	for {
-		ps, err := gitlab.GetProjects(token, url, perPage, page)
+		ps, err := gitlab.GetProjects(token, gitlabURL, namespace, perPage, page)
 		if err != nil {
 			fmt.Printf("Error retrieving projects %s\n", err)
 			return
@@ -56,7 +81,6 @@ func main() {
 			break
 		}
 
-		fmt.Printf("Page %d, project size: %d\n", page, len(ps))
 		totalProject += len(ps)
 
 		for _, p := range ps {
@@ -64,7 +88,7 @@ func main() {
 		}
 
 		for i := 0; i < len(ps); i++ {
-			err := <-results
+			err := <-errors
 			if err != nil {
 				errs = append(errs, err)
 			}

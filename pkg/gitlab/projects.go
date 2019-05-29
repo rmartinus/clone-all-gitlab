@@ -5,20 +5,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // Project represents gitlab response
 type Project struct {
+	Namespace struct {
+		FullPath string `json:"full_path"`
+	}
 	Path    string `json:"path_with_namespace"`
 	RepoURL string `json:"http_url_to_repo"`
 }
 
 // GetProjects gets a list of projects
-func GetProjects(token string, url string, perPage int, page int) ([]Project, error) {
-	url = fmt.Sprintf("%s?include_subgroups=true&per_page=%d&page=%d", url, perPage, page)
+func GetProjects(token string, gitlabURL string, namespace string, perPage int, page int) ([]Project, error) {
+	gitlabURL = fmt.Sprintf("%s?include_subgroups=true&per_page=%d&page=%d", gitlabURL, perPage, page)
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", gitlabURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +48,16 @@ func GetProjects(token string, url string, perPage int, page int) ([]Project, er
 	err = json.Unmarshal(body, &ps)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(namespace) > 1 {
+		var filteredProjects []Project
+		for _, p := range ps {
+			if strings.HasPrefix(p.Namespace.FullPath, namespace) {
+				filteredProjects = append(filteredProjects, p)
+			}
+		}
+		return filteredProjects, nil
 	}
 
 	return ps, nil
